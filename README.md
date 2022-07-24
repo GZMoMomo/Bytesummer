@@ -64,3 +64,8 @@ bloom filter：创建一个bloom filter表，说明该数据在与不在，在�
 执行计划的代价：所有算子的执行代价之和  
 算子代价：CPU,内存，磁盘I/O，网络I/O等代价    
 与算计的类型和输入数据的统计信息有关（输入输出的行数大小）  
+#### 如何收集统计信息
+![image](https://user-images.githubusercontent.com/91240419/180646730-a97b7709-cf6e-4d0f-840f-dd7fca0055f2.png)
+-CBO的枚举执行计划  
+动态规划和贪心算法  
+
