@@ -37,6 +37,9 @@ Executer
 ### 查询优化器分类
 ![image](https://user-images.githubusercontent.com/91240419/180641624-b6c9872c-ee9c-4616-a516-2b4c82e9d45a.png)
 ### RBO
+基于经验归纳得到的优化规则  
+实现简单，优化速度快  
+无法保证最优的执行计划  
 -关系代数  
 -优化内容：  
 减少I/O，减少Network传输，减少CPU和内存的使用量  
@@ -54,4 +57,10 @@ Executer
 min-max：最大最小值范围过滤器  
 in-list：当数据量小的时候，可以生成一个数据集过滤器  
 bloom filter：创建一个bloom filter表，说明该数据在与不在，在扫描数据时先查询bloom filter，若不在其中则不需要该数据  
+![image](https://user-images.githubusercontent.com/91240419/180643733-eedb6ef5-16cf-437f-9e83-4050f8d936ef.png)
+
 ### CBO
+使用一个模型估算执行计划的代价，选择代价最小的执行计划  
+执行计划的代价：所有算子的执行代价之和  
+算子代价：CPU,内存，磁盘I/O，网络I/O等代价    
+与算计的类型和输入数据的统计信息有关（输入输出的行数大小）  
