@@ -7,12 +7,12 @@
 ![image](https://user-images.githubusercontent.com/91240419/180648530-5a66e88f-67eb-4bc6-95db-875cbc8b1114.png)
 ## SQL的处理流程
 ![image](https://user-images.githubusercontent.com/91240419/180639390-84292810-2b7a-4a6a-b108-17c91933c9fa.png)
-### Parser
+### Parser 语法分析器
 #### 抽象语法树（Abstract Syntax Tree，AST）  
 词法分析：拆分字符串，得到关键字、数值常量、字符串常量、运算符号等token  
 语法分析：将token组成AST node，最终得到一个AST
 ![image](https://user-images.githubusercontent.com/91240419/180639680-dca51533-7780-4a65-87d3-f49f5db574ee.png)
-### Analyzer
+### Analyzer 
 作用：  
 检查并绑定Database，Table，Column等原信息  
 检查SQL合法性，比如max、min、avg的输入是数值  
