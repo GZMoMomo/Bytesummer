@@ -71,3 +71,14 @@ bloom filter：创建一个bloom filter表，说明该数据在与不在，在�
 动态规划和贪心算法  
 -哈希连接（Hash Join）：将其中一个表的连接字段计算出一个哈希表，然后从另一个表中一次获取记录并计算哈希值，根据两个哈希值来匹配符合条件的记录。这种方式在数据量大且没有创建索引的情况下的性能可能更好。
 -排序合并连接（Sort Merge Join）：首先将两个表中的数据基于连接字段分别进行排序，然后合并排序后的结果。这种方式通常用于没有创建索引，并且数据已经排序的情况。
+
+
+##流/批/OLAP 一体的 Flink 引擎介绍
+### Flink分层架构
+![image](https://user-images.githubusercontent.com/91240419/181015794-7692f649-d837-4654-afb0-d0c35d604383.png)
+### Flink整体架构
+![image](https://user-images.githubusercontent.com/91240419/181015949-dbd553b1-34ed-4706-806d-4deb01b1f484.png)
+![image](https://user-images.githubusercontent.com/91240419/181016019-78c0da08-eafc-40a8-b2fe-3d317e14a7d6.png)
+### --
+Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫做Shuffle
+
