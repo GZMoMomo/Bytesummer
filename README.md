@@ -80,5 +80,13 @@ bloom filter：创建一个bloom filter表，说明该数据在与不在，在�
 ![image](https://user-images.githubusercontent.com/91240419/181015949-dbd553b1-34ed-4706-806d-4deb01b1f484.png)
 ![image](https://user-images.githubusercontent.com/91240419/181016019-78c0da08-eafc-40a8-b2fe-3d317e14a7d6.png)
 ### --
-Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫做Shuffle
+Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫做Shuffle  
+![image](https://user-images.githubusercontent.com/91240419/181016635-fc3b9cc9-51c8-4e0d-a78a-ea95eda85d23.png)
+### 案例
+![image](https://user-images.githubusercontent.com/91240419/181025563-c928a594-fb2e-4f11-be2e-8b797bf5603c.png)  
+![image](https://user-images.githubusercontent.com/91240419/181025700-3466181c-5426-4f4f-8dde-0de6685b2630.png)  
+![image](https://user-images.githubusercontent.com/91240419/181025827-2c07c4bc-c0e7-471b-84f2-b0118841f49e.png)
+
+
+
 
