@@ -70,7 +70,7 @@ bloom filter：创建一个bloom filter表，说明该数据在与不在，在�
 -CBO的枚举执行计划  
 动态规划和贪心算法  
 -哈希连接（Hash Join）：将其中一个表的连接字段计算出一个哈希表，然后从另一个表中一次获取记录并计算哈希值，根据两个哈希值来匹配符合条件的记录。这种方式在数据量大且没有创建索引的情况下的性能可能更好。
--排序合并连接（Sort Merge Join）：首先将两个表中的数据基于连接字段分别进行排序，然后合并排序后的结果。这种方式通常用于没有创建索引，并且数据已经排序的情况。
+-排序合并连接（Sort Merge Join）：首先将两个表中的数据基于连接字段分别进行排序，然后合并排序后的结果。这种方式通常用于没有创建索 引，并且数据已经排序的情况。
 
 
 ##流/批/OLAP 一体的 Flink 引擎介绍
@@ -86,6 +86,16 @@ Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫�
 ![image](https://user-images.githubusercontent.com/91240419/181025563-c928a594-fb2e-4f11-be2e-8b797bf5603c.png)  
 ![image](https://user-images.githubusercontent.com/91240419/181025700-3466181c-5426-4f4f-8dde-0de6685b2630.png)  
 ![image](https://user-images.githubusercontent.com/91240419/181025827-2c07c4bc-c0e7-471b-84f2-b0118841f49e.png)
+
+
+## Exactly Once 语义在 Flink 中的实现
+### 三种语义
+1.At-most-once:出现故障的时候，啥也不做。数据处理不保证任何语义，处理时延低。
+2.At-least-once:保证每条数据均至少被处理一次，一条数据可能存在重复消费。
+3.Exactly-once:最严格的处理语义，从输出结果来看，每条数据均被消费且仅消费一次，仿佛故障从未发生。
+
+### 两阶段提交
+![image](https://user-images.githubusercontent.com/91240419/181522513-9f668235-02e8-4f52-910d-b3affd34f871.png)
 
 
 
