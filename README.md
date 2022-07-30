@@ -119,6 +119,13 @@ flink中如何实现exactly-once语义
 ![image](https://user-images.githubusercontent.com/91240419/181870464-6f27f014-1376-4e40-9434-bfaba5b6f3e0.png)
 ![image](https://user-images.githubusercontent.com/91240419/181870524-72759ce3-2a48-424c-8cf6-08cf01f4846d.png)
 ![image](https://user-images.githubusercontent.com/91240419/181870532-93738ea0-9f60-4f0c-a0de-e776a6d4c20a.png)
+![image](https://user-images.githubusercontent.com/91240419/181870710-541e5a72-ecc5-4e6e-8077-7d3d77f43659.png)
+![image](https://user-images.githubusercontent.com/91240419/181870840-ec04fe24-4573-4d2a-bd6f-ad65b6d6fbb2.png)
+### window高级优化
+#### 倾斜优化
+![image](https://user-images.githubusercontent.com/91240419/181871063-7ca763cf-49f4-4f2d-997c-b4b313186c08.png)
+做预聚合
+![image](https://user-images.githubusercontent.com/91240419/181871268-882f15dd-c4f6-430b-8d26-616bcd899c3e.png)
 
 
 
