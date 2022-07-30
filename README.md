@@ -112,7 +112,13 @@ flink中如何实现exactly-once语义
 ![image](https://user-images.githubusercontent.com/91240419/181870178-b496b236-4f24-446d-b902-da6d071dee26.png)
 ![image](https://user-images.githubusercontent.com/91240419/181870117-aa38492a-342e-401b-ac24-2ed21b7dce66.png)
 
-
+### window基本功能
+1.滚动窗口 
+2.滑动窗口  
+3.会话窗口  
+![image](https://user-images.githubusercontent.com/91240419/181870464-6f27f014-1376-4e40-9434-bfaba5b6f3e0.png)
+![image](https://user-images.githubusercontent.com/91240419/181870524-72759ce3-2a48-424c-8cf6-08cf01f4846d.png)
+![image](https://user-images.githubusercontent.com/91240419/181870532-93738ea0-9f60-4f0c-a0de-e776a6d4c20a.png)
 
 
 
