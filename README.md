@@ -14,8 +14,8 @@
 ![image](https://user-images.githubusercontent.com/91240419/180639680-dca51533-7780-4a65-87d3-f49f5db574ee.png)
 ### Analyzer 
 作用：  
-检查并绑定Database，Table，Column等原信息  
-检查SQL合法性，比如max、min、avg的输入是数值  
++ 检查并绑定Database，Table，Column等原信息  
++ 检查SQL合法性，比如max、min、avg的输入是数值  
 AST->Logical Plan
 #### 逻辑计划（Logical Plan） 
 ![image](https://user-images.githubusercontent.com/91240419/180640113-d27cf196-35bd-4cf9-99bc-b5eba258a2e6.png)
@@ -25,10 +25,10 @@ SQL是声明式语言，用户只描述了做什么，没有告诉数据库怎�
 找到一个正确且代价最小的物理执行计划
 #### 物理计划（Physical Plan）  
 分为：  
-Plan Fragment：执行计划子树 
-最小化网络数据传输，把逻辑计划拆分成多个物理计划  
-查询优化器需要感知数据分布，利用数据的物理分布（数据亲和性）  
-增加Shuffle算子  
++ Plan Fragment：执行计划子树 
++ 最小化网络数据传输，把逻辑计划拆分成多个物理计划  
++ 查询优化器需要感知数据分布，利用数据的物理分布（数据亲和性）  
++ 增加Shuffle算子  
 ![image](https://user-images.githubusercontent.com/91240419/180640483-a4ac9846-3f55-476c-b1d9-1e9b1e472dab.png)  
 Executer  
 单机并行：cache、pipeline、SIMD  
@@ -61,62 +61,62 @@ bloom filter：创建一个bloom filter表，说明该数据在与不在，在�
 ![image](https://user-images.githubusercontent.com/91240419/180643733-eedb6ef5-16cf-437f-9e83-4050f8d936ef.png)
 
 ### CBO
-使用一个模型估算执行计划的代价，选择代价最小的执行计划  
-执行计划的代价：所有算子的执行代价之和  
-算子代价：CPU,内存，磁盘I/O，网络I/O等代价    
-与算计的类型和输入数据的统计信息有关（输入输出的行数大小）  
++ 使用一个模型估算执行计划的代价，选择代价最小的执行计划  
++ 执行计划的代价：所有算子的执行代价之和  
++ 算子代价：CPU,内存，磁盘I/O，网络I/O等代价    
++ 与算计的类型和输入数据的统计信息有关（输入输出的行数大小）  
 #### 如何收集统计信息
 ![image](https://user-images.githubusercontent.com/91240419/180646730-a97b7709-cf6e-4d0f-840f-dd7fca0055f2.png)
 -CBO的枚举执行计划  
-动态规划和贪心算法  
--哈希连接（Hash Join）：将其中一个表的连接字段计算出一个哈希表，然后从另一个表中一次获取记录并计算哈希值，根据两个哈希值来匹配符合条件的记录。这种方式在数据量大且没有创建索引的情况下的性能可能更好。
--排序合并连接（Sort Merge Join）：首先将两个表中的数据基于连接字段分别进行排序，然后合并排序后的结果。这种方式通常用于没有创建索 引，并且数据已经排序的情况。
+- 动态规划和贪心算法  
+- 哈希连接（Hash Join）：将其中一个表的连接字段计算出一个哈希表，然后从另一个表中一次获取记录并计算哈希值，根据两个哈希值来匹配符合条件的记录。这种方式在数据量大且没有创建索引的情况下的性能可能更好。
+- 排序合并连接（Sort Merge Join）：首先将两个表中的数据基于连接字段分别进行排序，然后合并排序后的结果。这种方式通常用于没有创建索 引，并且数据已经排序的情况。
 
 
 ##流/批/OLAP 一体的 Flink 引擎介绍
 ### Flink分层架构
 ![image](https://user-images.githubusercontent.com/91240419/181015794-7692f649-d837-4654-afb0-d0c35d604383.png)
-SDK 层：Flink's APIs Overview；  
-执行引擎层（Runtime 层）：执行引擎层提供了统一的 DAG，用来描述数据处理的 Pipeline，不管是流还是批，都会转化为 DAG 图，调度层再把 DAG 转化成分布式环境下的 Task，Task 之间通过 Shuffle 传输数据；  
-调度：Jobs and Scheduling；  
-Task 生命周期：Task Lifecycle；  
-Flink Failover 机制：Task Failure Recovery；  
-Flink 反压概念及监控：Monitoring Back Pressure；  
-Flink HA 机制：Flink HA Overview；  
-状态存储层：负责存储算子的状态信息  
+- SDK 层：Flink's APIs Overview；  
+- 执行引擎层（Runtime 层）：执行引擎层提供了统一的 DAG，用来描述数据处理的 Pipeline，不管是流还是批，都会转化为 DAG 图，调度层再把 DAG 转化成分布式环境下的 Task，Task 之间通过 Shuffle 传输数据；  
+- 调度：Jobs and Scheduling；  
+- Task 生命周期：Task Lifecycle；  
+- Flink Failover 机制：Task Failure Recovery；  
+- Flink 反压概念及监控：Monitoring Back Pressure；  
+- Flink HA 机制：Flink HA Overview；  
+- 状态存储层：负责存储算子的状态信息  
 ### Flink整体架构
 ![image](https://user-images.githubusercontent.com/91240419/181015949-dbd553b1-34ed-4706-806d-4deb01b1f484.png)
 ![image](https://user-images.githubusercontent.com/91240419/181016019-78c0da08-eafc-40a8-b2fe-3d317e14a7d6.png)
 #### JobManager（JM）负责整个任务的协调工作，包括：调度 task、触发协调 Task 做 Checkpoint、协调容错恢复等，核心有下面三个组件：
-Dispatcher: 接收作业，拉起 JobManager 来执行作业，并在 JobMaster 挂掉之后恢复作业；  
-JobMaster: 管理一个 job 的整个生命周期，会向 ResourceManager 申请 slot，并将 task 调度到对应 TM 上；  
-ResourceManager：负责 slot 资源的管理和调度，Task manager 拉起之后会向 RM 注册；  
-TaskManager（TM）：负责执行一个 DataFlow Graph 的各个 task 以及 data streams 的 buffer 和数据交换。  
+- Dispatcher: 接收作业，拉起 JobManager 来执行作业，并在 JobMaster 挂掉之后恢复作业；  
+- JobMaster: 管理一个 job 的整个生命周期，会向 ResourceManager 申请 slot，并将 task 调度到对应 TM 上；  
+- ResourceManager：负责 slot 资源的管理和调度，Task manager 拉起之后会向 RM 注册；  
+- TaskManager（TM）：负责执行一个 DataFlow Graph 的各个 task 以及 data streams 的 buffer 和数据交换。  
 ### --
 Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫做Shuffle  
 ![image](https://user-images.githubusercontent.com/91240419/181016635-fc3b9cc9-51c8-4e0d-a78a-ea95eda85d23.png)
 #### Apache Flink 主要从以下几个模块来做流批一体：
 SQL 层；  
-DataStream API 层统一，批和流都可以使用 DataStream API 来开发；  
-Scheduler 层架构统一，支持流批场景；  
-Failover Recovery 层 架构统一，支持流批场景；  
-Shuffle Service 层架构统一，流批场景选择不同的 Shuffle Service；  
+- DataStream API 层统一，批和流都可以使用 DataStream API 来开发；  
+- Scheduler 层架构统一，支持流批场景；  
+- Failover Recovery 层 架构统一，支持流批场景；  
+- Shuffle Service 层架构统一，流批场景选择不同的 Shuffle Service；  
 #### 流批一体的 Scheduler 层
 Scheduler 主要负责将作业的 DAG 转化为在分布式环境中可以执行的 Task；  
 1.12 之前的 Flink 版本，Flink 支持两种调度模式：
-EAGER（Streaming 场景）：申请一个作业所需要的全部资源，然后同时调度这个作业的全部 Task，所有的 Task 之间采取 Pipeline 的方式进行通信；  
-LAZY（Batch 场景）：先调度上游，等待上游产生数据或结束后再调度下游，类似 Spark 的 Stage 执行模式。  
-Pipeline Region Scheduler 机制：FLIP-119 Pipelined Region Scheduling - Apache Flink - Apache Software Foundation；  
+- EAGER（Streaming 场景）：申请一个作业所需要的全部资源，然后同时调度这个作业的全部 Task，所有的 Task 之间采取 Pipeline 的方式进行通信；  
+- LAZY（Batch 场景）：先调度上游，等待上游产生数据或结束后再调度下游，类似 Spark 的 Stage 执行模式。  
+- Pipeline Region Scheduler 机制：FLIP-119 Pipelined Region Scheduling - Apache Flink - Apache Software Foundation；  
 #### 流批一体的 Shuffle Service 层（FLIP-31: Pluggable Shuffle Service - Apache Flink - Apache Software Foundation）
 Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫做 Shuffle。实际上，分布式计算中所有涉及到上下游衔接的过程，都可以理解为 Shuffle；  
 #### Shuffle 分类：  
-基于文件的 Pull Based Shuffle，比如 Spark 或 MR，它的特点是具有较高的容错性，适合较大规模的批处理作业，由于是基于文件的，它的容错性和稳定性会更好一些；  
-基于 Pipeline 的 Push Based Shuffle，比如 Flink、Storm、Presto 等，它的特点是低延迟和高性能，但是因为 shuffle 数据没有存储下来，如果是 batch 任务的话，就需要进行重跑恢复；  
+- 基于文件的 Pull Based Shuffle，比如 Spark 或 MR，它的特点是具有较高的容错性，适合较大规模的批处理作业，由于是基于文件的，它的容错性和稳定性会更好一些；  
+- 基于 Pipeline 的 Push Based Shuffle，比如 Flink、Storm、Presto 等，它的特点是低延迟和高性能，但是因为 shuffle 数据没有存储下来，如果是 batch 任务的话，就需要进行重跑恢复；  
 #### 流和批 Shuffle 之间的差异：
-Shuffle 数据的生命周期：流作业的 Shuffle 数据与 Task 是绑定的，而批作业的 Shuffle 数据与 Task 是解耦的；  
-Shuffle 数据存储介质：流作业的生命周期比较短、而且流作业为了实时性，Shuffle 通常存储在内存中，批作业因为数据量比较大以及容错的需求，一般会存储在磁盘里；  
-Shuffle 的部署方式：流作业 Shuffle 服务和计算节点部署在一起，可以减少网络开销，从而减少 latency，而批作业则不同。  
-Pluggable Shuffle Service：Flink 的目标是提供一套统一的 Shuffle 架构，既可以满足不同 Shuffle 在策略上的定制，同时还能避免在共性需求上进行重复开发  
+- Shuffle 数据的生命周期：流作业的 Shuffle 数据与 Task 是绑定的，而批作业的 Shuffle 数据与 Task 是解耦的；  
+- Shuffle 数据存储介质：流作业的生命周期比较短、而且流作业为了实时性，Shuffle 通常存储在内存中，批作业因为数据量比较大以及容错的需求，一般会存储在磁盘里；  
+- Shuffle 的部署方式：流作业 Shuffle 服务和计算节点部署在一起，可以减少网络开销，从而减少 latency，而批作业则不同。  
+- Pluggable Shuffle Service：Flink 的目标是提供一套统一的 Shuffle 架构，既可以满足不同 Shuffle 在策略上的定制，同时还能避免在共性需求上进行重复开发  
 #### Flink 流批一体总结
 经过相应的改造和优化之后，Flink 在架构设计上，针对 DataStream 层、调度层、Shuffle Service 层，均完成了对流和批的支持。  
 业务已经可以非常方便地使用 Flink 解决流和批场景的问题了。  
@@ -129,37 +129,37 @@ Pluggable Shuffle Service：Flink 的目标是提供一套统一的 Shuffle 架�
 ## Exactly Once 语义在 Flink 中的实现
 动态表 ： 随时间不断变化的表，在任意时刻，可以像查询静态批处理表一样查询它们
 #### 实时流的查询特点？
-查询从不终止   
-查询结果会不断更新，并且会产生一个新的动态表  
-结果的动态表也可转换成输出的实时流    
+- 查询从不终止   
+- 查询结果会不断更新，并且会产生一个新的动态表  
+- 结果的动态表也可转换成输出的实时流    
 #### 动态表到实时流的转换  
 Append-only Stream: Append-only 流（只有 INSERT 消息）  
 Retract Stream: Retract 流（同时包含 INSERT 消息和 DELETE 消息）  
 ### 三种语义
-1.At-most-once:出现故障的时候，啥也不做。数据处理不保证任何语义，处理时延低。
-2.At-least-once:保证每条数据均至少被处理一次，一条数据可能存在重复消费。
-3.Exactly-once:最严格的处理语义，从输出结果来看，每条数据均被消费且仅消费一次，仿佛故障从未发生。
+1. At-most-once:出现故障的时候，啥也不做。数据处理不保证任何语义，处理时延低。
+2. At-least-once:保证每条数据均至少被处理一次，一条数据可能存在重复消费。
+3. Exactly-once:最严格的处理语义，从输出结果来看，每条数据均被消费且仅消费一次，仿佛故障从未发生。
 
 ### 两阶段提交
 ![image](https://user-images.githubusercontent.com/91240419/181522513-9f668235-02e8-4f52-910d-b3affd34f871.png)
 
 ## 流式计算中的window机制
-###回顾
-动态表  
-flink中的state和checkpoint的基本原理  
-flink中的retract机制，以及算子如何产生和处理retract数据  
-flink中如何实现exactly-once语义
+### 回顾
+- 动态表  
+- flink中的state和checkpoint的基本原理  
+- flink中的retract机制，以及算子如何产生和处理retract数据  
+- flink中如何实现exactly-once语义
 ### watermark
-Watermark定义：当前系统认为的事件时间所在的真实时间。   
-Watermark产生：一般是从数据的事件时间来产生，产生策略可以灵活多样，最常见的包括使用当前事件时间的时间减去一个固定的delay，来表示可以可以容忍多长时间的乱序。  
-Watermark传递：这个类似于上节课中介绍的Checkpoint的制作过程，传递就类似于Checkpoint的barrier，上下游task之间有数据传输关系的，上游就会将watermark传递给下游；下游收到多个上游传递过来的watermark后，默认会取其中最小值来作为自身的watermark，同时它也会将自己watermark传递给它的下游。经过整个传递过程，最终系统中每一个计算单元就都会实时的知道自身当前的watermark是多少。
+- Watermark定义：当前系统认为的事件时间所在的真实时间。   
+- Watermark产生：一般是从数据的事件时间来产生，产生策略可以灵活多样，最常见的包括使用当前事件时间的时间减去一个固定的delay，来表示可以可以容忍多长时间的乱序。  
+- Watermark传递：这个类似于上节课中介绍的Checkpoint的制作过程，传递就类似于Checkpoint的barrier，上下游task之间有数据传输关系的，上游就会将watermark传递给下游；下游收到多个上游传递过来的watermark后，默认会取其中最小值来作为自身的watermark，同时它也会将自己watermark传递给它的下游。经过整个传递过程，最终系统中每一个计算单元就都会实时的知道自身当前的watermark是多少。
 ![image](https://user-images.githubusercontent.com/91240419/181904830-eca0bd40-0c71-4273-b010-a150a5efb69b.png)
 #### 怎么观察一个任务中的watermark是多少，是否是正常的
 一般通过Flink Web UI上的信息来观察当前任务的watermark情况  
 这个问题是生产实践中最容易遇到的问题，大家在开发事件时间的窗口任务的时候，经常会忘记了设置watermark，或者数据太少，watermark没有及时的更新，导致窗口一直不能触发。
 #### Per-partition / Per-subtask 生成watermark的优缺点
-在Flink里早期都是per-subtask的方式进行watermark的生成，这种方式比较简单。但是如果每个source task如果有消费多个partition的情况的话，那多个partition之间的数据可能会因为消费的速度不同而最终导致数据的乱序程度增加。  
-后期（上面图中）就逐步的变成了per-partition的方式来产生watermark，来避免上面的问题。
+- 在Flink里早期都是per-subtask的方式进行watermark的生成，这种方式比较简单。但是如果每个source task如果有消费多个partition的情况的话，那多个partition之间的数据可能会因为消费的速度不同而最终导致数据的乱序程度增加。  
+- 后期（上面图中）就逐步的变成了per-partition的方式来产生watermark，来避免上面的问题。
 #### 如果有部分partition/subtask会断流，应该如何处理
 数据断流是很常见的问题，有时候是业务数据本身就有这种特点，比如白天有数据，晚上没有数据。在这种情况下，watermark默认是不会更新的，因为它要取上游subtask发来的watermark中的最小值。此时我们可以用一种IDLE状态来标记这种subtask，被标记为这种状态的subtask，我们在计算watermark的时候，可以把它先排除在外。这样就可以保证有部分partition断流的时候，watermark仍然可以继续更新。
 #### 算子对于时间晚于watermark的数据的处理
@@ -238,22 +238,22 @@ local-global优化是分布式系统中典型的优化，主要是可以降低�
 ![image](https://user-images.githubusercontent.com/91240419/181902804-88504c25-b318-49f8-8324-38afd40f4718.png)
 Spark应用在集群上运行时，包括了多个独立的进程，这些进程之间通过驱动程序（Driver Program）中的SparkContext对象进行协调，SparkContext对象能够与多种集群资源管理器（Cluster Manager）通信，一旦与集群资源管理器连接，Spark会为该应用在各个集群节点上申请执行器（Executor），用于执行计算任务和存储数据。Spark将应用程序代码发送给所申请到的执行器，SparkContext对象将分割出的任务（Task）发送给各个执行器去运行。
 #### 需要注意的是  
-1.每个Spark application都有其对应的多个executor进程。Executor进程在整个应用程序生命周期内，都保持运行状态，并以多线程方式执行任务。这样做的好处是，Executor进程可以隔离每个Spark应用。从调度角度来看，每个driver可以独立调度本应用程序的内部任务。从executor角度来看，不同Spark应用对应的任务将会在不同的JVM中运行。然而这样的架构也有缺点，多个Spark应用程序之间无法共享数据，除非把数据写到外部存储结构中。  
-2.Spark对底层的集群管理器一无所知，只要Spark能够申请到executor进程，能与之通信即可。这种实现方式可以使Spark比较容易的在多种集群管理器上运行，例如Mesos、Yarn、Kubernetes。  
+1. 每个Spark application都有其对应的多个executor进程。Executor进程在整个应用程序生命周期内，都保持运行状态，并以多线程方式执行任务。这样做的好处是，Executor进程可以隔离每个Spark应用。从调度角度来看，每个driver可以独立调度本应用程序的内部任务。从executor角度来看，不同Spark应用对应的任务将会在不同的JVM中运行。然而这样的架构也有缺点，多个Spark应用程序之间无法共享数据，除非把数据写到外部存储结构中。  
+2. Spark对底层的集群管理器一无所知，只要Spark能够申请到executor进程，能与之通信即可。这种实现方式可以使Spark比较容易的在多种集群管理器上运行，例如Mesos、Yarn、Kubernetes。  
 Driver Program在整个生命周期内必须监听并接受其对应的各个executor的连接请求，因此driver program必须能够被所有worker节点访问到。  
-3.因为集群上的任务是由driver来调度的，driver应该和worker节点距离近一些，最好在同一个本地局域网中，如果需要远程对集群发起请求，最好还是在driver节点上启动RPC服务响应这些远程请求，同时把driver本身放在离集群Worker节点比较近的机器上。
+3. 因为集群上的任务是由driver来调度的，driver应该和worker节点距离近一些，最好在同一个本地局域网中，如果需要远程对集群发起请求，最好还是在driver节点上启动RPC服务响应这些远程请求，同时把driver本身放在离集群Worker节点比较近的机器上。
 ### spark core
 ![image](https://user-images.githubusercontent.com/91240419/181902998-6ba9e609-1dc8-4577-a7cf-10a1dfd6b2bf.png)
 #### RDD  
 ![image](https://user-images.githubusercontent.com/91240419/181905426-b643ddbf-e4e3-49fe-a01c-bf6786a7749f.png)
-1.并行执行的分布式数据集，spark中数据处理模型   
-2.分区（决定并行执行的数量）
-3.前后依赖其他rdd
-划分Stage的整体思路：从后往前推，遇到宽依赖就断开，划分为一个Stage。遇到窄依赖，就将这个RDD加入该Stage中，DAG最后一个阶段会为每个结果的Partition生成一个ResultTask。每个Stage里面的Task数量由最后一个RDD的Partition数量决定，其余的阶段会生成ShuffleMapTask。    
-当RDD对象创建后，SparkContext会根据RDD对象构建DAG有向无环图，然后将Task提交给DAGScheduler。DAGScheduler根据ShuffleDependency将DAG划分为不同的Stage，为每个Stage生成TaskSet任务集合，并以TaskSet为单位提交给TaskScheduler。TaskScheduler根据调度算法(FIFO/FAIR)对多个TaskSet进行调度，并通过集群中的资源管理器(Standalone模式下是Master，Yarn模式下是ResourceManager)把Task调度(locality)到集群中Worker的Executor，Executor由SchedulerBackend提供。  
+1. 并行执行的分布式数据集，spark中数据处理模型   
+2. 分区（决定并行执行的数量）
+3. 前后依赖其他rdd
+- 划分Stage的整体思路：从后往前推，遇到宽依赖就断开，划分为一个Stage。遇到窄依赖，就将这个RDD加入该Stage中，DAG最后一个阶段会为每个结果的Partition生成一个ResultTask。每个Stage里面的Task数量由最后一个RDD的Partition数量决定，其余的阶段会生成ShuffleMapTask。    
+- 当RDD对象创建后，SparkContext会根据RDD对象构建DAG有向无环图，然后将Task提交给DAGScheduler。DAGScheduler根据ShuffleDependency将DAG划分为不同的Stage，为每个Stage生成TaskSet任务集合，并以TaskSet为单位提交给TaskScheduler。TaskScheduler根据调度算法(FIFO/FAIR)对多个TaskSet进行调度，并通过集群中的资源管理器(Standalone模式下是Master，Yarn模式下是ResourceManager)把Task调度(locality)到集群中Worker的Executor，Executor由SchedulerBackend提供。  
 RDD算子  
-1.transform算计：生成一个新的rdd 
-2.action算子：触发job提交  
+1. transform算计：生成一个新的rdd 
+2. action算子：触发job提交  
 RDD依赖   
 窄依赖：  
 宽依赖：会产生shuffle    
@@ -271,25 +271,25 @@ Reserverd memory：预留内存，防止OOM，
 ### SparkSQL
 ![image](https://user-images.githubusercontent.com/91240419/181915346-8635b2bb-4e7d-4900-9991-9ad6b4e2d17a.png)
 ##### SparkSQL执行过程
-. SQL Parse： 将SparkSQL字符串或DataFrame解析为一个抽象语法树/AST，即Unresolved Logical Plan  
-. Analysis：遍历整个AST，并对AST上的每个节点进行数据类型的绑定以及函数绑定，然后根据元数据信息Catalog对数据表中的字段进行解析。 利用Catalog信息将Unresolved Logical Plan解析成Analyzed Logical plan  
-. Logical Optimization：该模块是Catalyst的核心，主要分为RBO和CBO两种优化策略，其中RBO是基于规则优化，CBO是基于代价优化。 利用一些规则将Analyzed Logical plan解析成Optimized Logic plan  
-. Physical Planning: Logical plan是不能被spark执行的，这个过程是把Logic plan转换为多个Physical plans  
-. CostModel: 主要根据过去的性能统计数据，选择最佳的物理执行计划(Selected Physical Plan)。  
-. Code Generation: sql逻辑生成Java字节码
+- SQL Parse： 将SparkSQL字符串或DataFrame解析为一个抽象语法树/AST，即Unresolved Logical Plan  
+- Analysis：遍历整个AST，并对AST上的每个节点进行数据类型的绑定以及函数绑定，然后根据元数据信息Catalog对数据表中的字段进行解析。 利用Catalog信息将Unresolved Logical Plan解析成Analyzed Logical plan  
+- Logical Optimization：该模块是Catalyst的核心，主要分为RBO和CBO两种优化策略，其中RBO是基于规则优化，CBO是基于代价优化。 利用一些规则将Analyzed Logical plan解析成Optimized Logic plan  
+- Physical Planning: Logical plan是不能被spark执行的，这个过程是把Logic plan转换为多个Physical plans  
+- CostModel: 主要根据过去的性能统计数据，选择最佳的物理执行计划(Selected Physical Plan)。  
+- Code Generation: sql逻辑生成Java字节码
 ##### 影响SparkSQL性能两大技术：
-1.Optimizer：执行计划的优化，目标是找出最优的执行计划  
-2.Runtime：运行时优化，目标是在既定的执行计划下尽可能快的执行完毕。  
+1. Optimizer：执行计划的优化，目标是找出最优的执行计划  
+2. Runtime：运行时优化，目标是在既定的执行计划下尽可能快的执行完毕。  
 
 #### Catalyst优化
-. Rule Based Optimizer(RBO): 基于规则优化，对语法树进行一次遍历，模式匹配能够满足特定规则的节点，再进行相应的等价转换。  
-. Cost Based Optimizer(CBO): 基于代价优化，根据优化规则对关系表达式进行转换，生成多个执行计划，然后CBO会通过根据统计信息(Statistics)和代价模型(Cost Model)计算各种可能执行计划的代价，从中选用COST最低的执行方案，作为实际运行方案。CBO依赖数据库对象的统计信息，统计信息的准确与否会影响CBO做出最优的选择。
+- Rule Based Optimizer(RBO): 基于规则优化，对语法树进行一次遍历，模式匹配能够满足特定规则的节点，再进行相应的等价转换。  
+- Cost Based Optimizer(CBO): 基于代价优化，根据优化规则对关系表达式进行转换，生成多个执行计划，然后CBO会通过根据统计信息(Statistics)和代价模型(Cost Model)计算各种可能执行计划的代价，从中选用COST最低的执行方案，作为实际运行方案。CBO依赖数据库对象的统计信息，统计信息的准确与否会影响CBO做出最优的选择。
 #### AQE
 AQE对于整体的Spark SQL的执行过程做了相应的调整和优化，它最大的亮点是可以根据已经完成的计划结点真实且精确的执行统计结果来不停的反馈并重新优化剩下的执行计划。
 ##### AQE框架三种优化场景：  
-. 动态合并shuffle分区（Dynamically coalescing shuffle partitions）  
-. 动态调整Join策略（Dynamically switching join strategies）  
-. 动态优化数据倾斜Join（Dynamically optimizing skew joins）
+- 动态合并shuffle分区（Dynamically coalescing shuffle partitions）  
+- 动态调整Join策略（Dynamically switching join strategies）  
+- 动态优化数据倾斜Join（Dynamically optimizing skew joins）
 #### RuntimeFilter
 实现在Catalyst中。动态获取Filter内容做相关优化，当我们将一张大表和一张小表等值连接时，我们可以从小表侧收集一些统计信息，并在执行join前将其用于大表的扫描，进行分区修剪或数据过滤。可以大大提高性能
 ##### Runtime优化分两类：
