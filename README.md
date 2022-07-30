@@ -109,6 +109,7 @@ flink中如何实现exactly-once语义
 ![image](https://user-images.githubusercontent.com/91240419/181867260-dd737179-a289-4ecd-9186-5b06d2ec141c.png)
 ![image](https://user-images.githubusercontent.com/91240419/181869494-34a9b4ab-0fe7-4a71-85fa-a48f82a1adca.png)
 ![image](https://user-images.githubusercontent.com/91240419/181869890-0e733988-f52b-472c-90e4-16c7c8748f21.png)
+![image](https://user-images.githubusercontent.com/91240419/181870178-b496b236-4f24-446d-b902-da6d071dee26.png)
 ![image](https://user-images.githubusercontent.com/91240419/181870117-aa38492a-342e-401b-ac24-2ed21b7dce66.png)
 
 
