@@ -271,36 +271,36 @@ Reserverd memory：预留内存，防止OOM，
 ### SparkSQL
 ![image](https://user-images.githubusercontent.com/91240419/181915346-8635b2bb-4e7d-4900-9991-9ad6b4e2d17a.png)
 ##### SparkSQL执行过程
-.SQL Parse： 将SparkSQL字符串或DataFrame解析为一个抽象语法树/AST，即Unresolved Logical Plan  
-.Analysis：遍历整个AST，并对AST上的每个节点进行数据类型的绑定以及函数绑定，然后根据元数据信息Catalog对数据表中的字段进行解析。 利用Catalog信息将Unresolved Logical Plan解析成Analyzed Logical plan  
-.Logical Optimization：该模块是Catalyst的核心，主要分为RBO和CBO两种优化策略，其中RBO是基于规则优化，CBO是基于代价优化。 利用一些规则将Analyzed Logical plan解析成Optimized Logic plan  
-.Physical Planning: Logical plan是不能被spark执行的，这个过程是把Logic plan转换为多个Physical plans  
-.CostModel: 主要根据过去的性能统计数据，选择最佳的物理执行计划(Selected Physical Plan)。  
-.Code Generation: sql逻辑生成Java字节码
+. SQL Parse： 将SparkSQL字符串或DataFrame解析为一个抽象语法树/AST，即Unresolved Logical Plan  
+. Analysis：遍历整个AST，并对AST上的每个节点进行数据类型的绑定以及函数绑定，然后根据元数据信息Catalog对数据表中的字段进行解析。 利用Catalog信息将Unresolved Logical Plan解析成Analyzed Logical plan  
+. Logical Optimization：该模块是Catalyst的核心，主要分为RBO和CBO两种优化策略，其中RBO是基于规则优化，CBO是基于代价优化。 利用一些规则将Analyzed Logical plan解析成Optimized Logic plan  
+. Physical Planning: Logical plan是不能被spark执行的，这个过程是把Logic plan转换为多个Physical plans  
+. CostModel: 主要根据过去的性能统计数据，选择最佳的物理执行计划(Selected Physical Plan)。  
+. Code Generation: sql逻辑生成Java字节码
 ##### 影响SparkSQL性能两大技术：
 1.Optimizer：执行计划的优化，目标是找出最优的执行计划  
 2.Runtime：运行时优化，目标是在既定的执行计划下尽可能快的执行完毕。  
 
 #### Catalyst优化
-.Rule Based Optimizer(RBO): 基于规则优化，对语法树进行一次遍历，模式匹配能够满足特定规则的节点，再进行相应的等价转换。  
-.Cost Based Optimizer(CBO): 基于代价优化，根据优化规则对关系表达式进行转换，生成多个执行计划，然后CBO会通过根据统计信息(Statistics)和代价模型(Cost Model)计算各种可能执行计划的代价，从中选用COST最低的执行方案，作为实际运行方案。CBO依赖数据库对象的统计信息，统计信息的准确与否会影响CBO做出最优的选择。
+. Rule Based Optimizer(RBO): 基于规则优化，对语法树进行一次遍历，模式匹配能够满足特定规则的节点，再进行相应的等价转换。  
+. Cost Based Optimizer(CBO): 基于代价优化，根据优化规则对关系表达式进行转换，生成多个执行计划，然后CBO会通过根据统计信息(Statistics)和代价模型(Cost Model)计算各种可能执行计划的代价，从中选用COST最低的执行方案，作为实际运行方案。CBO依赖数据库对象的统计信息，统计信息的准确与否会影响CBO做出最优的选择。
 #### AQE
 AQE对于整体的Spark SQL的执行过程做了相应的调整和优化，它最大的亮点是可以根据已经完成的计划结点真实且精确的执行统计结果来不停的反馈并重新优化剩下的执行计划。
 ##### AQE框架三种优化场景：  
-.动态合并shuffle分区（Dynamically coalescing shuffle partitions）  
-.动态调整Join策略（Dynamically switching join strategies）  
-.动态优化数据倾斜Join（Dynamically optimizing skew joins）
+. 动态合并shuffle分区（Dynamically coalescing shuffle partitions）  
+. 动态调整Join策略（Dynamically switching join strategies）  
+. 动态优化数据倾斜Join（Dynamically optimizing skew joins）
 #### RuntimeFilter
 实现在Catalyst中。动态获取Filter内容做相关优化，当我们将一张大表和一张小表等值连接时，我们可以从小表侧收集一些统计信息，并在执行join前将其用于大表的扫描，进行分区修剪或数据过滤。可以大大提高性能
 ##### Runtime优化分两类：
-.全局优化：从提升全局资源利用率、消除数据倾斜、降低IO等角度做优化。包括AQE。  
-.局部优化：提高某个task的执行效率，主要从提高CPU与内存利用率的角度进行优化。依赖Codegen技术。
+. 全局优化：从提升全局资源利用率、消除数据倾斜、降低IO等角度做优化。包括AQE。  
+. 局部优化：提高某个task的执行效率，主要从提高CPU与内存利用率的角度进行优化。依赖Codegen技术。
 ####Codegen
 从提高cpu的利用率的角度来进行runtime优化。
 #### Expression级别
 表达式常规递归求值语法树。需要做很多类型匹配、虚函数调用、对象创建等额外逻辑，这些overhead远超对表达式求值本身，为了消除这些overhead，Spark Codegen直接拼成求值表达式的java代码并进行即时编译
 #### WholeStage级别
-.传统的火山模型：SQL经过解析会生成一颗查询树，查询树的每个节点为Operator，火山模型把operator看成迭代器，每个迭代器提供一个next()接口。通过自顶向下的调用 next 接口，数据则自底向上的被拉取处理，火山模型的这种处理方式也称为拉取执行模型，每个Operator 只要关心自己的处理逻辑即可，耦合性低。  
-.火山模型问题：数据以行为单位进行处理，不利于CPU cache 发挥作用；每处理一行需要调用多次next() 函数，而next()为虚函数调用。会有大量类型转换和虚函数调用。虚函数调用会导致CPU分支预测失败，从而导致严重的性能回退  
+. 传统的火山模型：SQL经过解析会生成一颗查询树，查询树的每个节点为Operator，火山模型把operator看成迭代器，每个迭代器提供一个next()接口。通过自顶向下的调用 next 接口，数据则自底向上的被拉取处理，火山模型的这种处理方式也称为拉取执行模型，每个Operator 只要关心自己的处理逻辑即可，耦合性低。  
+. 火山模型问题：数据以行为单位进行处理，不利于CPU cache 发挥作用；每处理一行需要调用多次next() 函数，而next()为虚函数调用。会有大量类型转换和虚函数调用。虚函数调用会导致CPU分支预测失败，从而导致严重的性能回退  
 Spark WholestageCodegen：为了消除这些overhead，会为物理计划生成类型确定的java代码。并进行即时编译和执行。  
 Codegen打破了Stage内部算子间的界限，拼出来跟原来的逻辑保持一致的裸的代码（通常是一个大循环）然后把拼成的代码编译成可执行文件。
