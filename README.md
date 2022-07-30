@@ -97,6 +97,23 @@ Shuffle：在分布式计算中，用来连接上下游数据交互的过程叫�
 ### 两阶段提交
 ![image](https://user-images.githubusercontent.com/91240419/181522513-9f668235-02e8-4f52-910d-b3affd34f871.png)
 
+## 流式计算中的window机制
+###回顾
+动态表  
+flink中的state和checkpoint的基本原理  
+flink中的retract机制，以及算子如何产生和处理retract数据  
+flink中如何实现exactly-once语义
+### 处理时间窗口
+![image](https://user-images.githubusercontent.com/91240419/181867225-06d48d7c-1107-4e98-9ab5-e4e8be087885.png)  
+![image](https://user-images.githubusercontent.com/91240419/181867267-f287ec83-4367-463a-912f-8cc638f02cde.png)
+![image](https://user-images.githubusercontent.com/91240419/181867260-dd737179-a289-4ecd-9186-5b06d2ec141c.png)
+![image](https://user-images.githubusercontent.com/91240419/181869494-34a9b4ab-0fe7-4a71-85fa-a48f82a1adca.png)
+![image](https://user-images.githubusercontent.com/91240419/181869890-0e733988-f52b-472c-90e4-16c7c8748f21.png)
+![image](https://user-images.githubusercontent.com/91240419/181870117-aa38492a-342e-401b-ac24-2ed21b7dce66.png)
+
+
+
+
 
 
 
