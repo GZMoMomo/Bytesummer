@@ -367,6 +367,25 @@ Codegen打破了Stage内部算子间的界限，拼出来跟原来的逻辑保�
 ![image](https://user-images.githubusercontent.com/91240419/182067485-bbe753d5-ee7a-4fc6-bba5-6e307821fd31.png)
 ![image](https://user-images.githubusercontent.com/91240419/182067525-8a6ae044-80a9-43fa-bf87-71eda590edf5.png)
 ![image](https://user-images.githubusercontent.com/91240419/182067547-6c029304-5646-41c3-91d3-2815a1fa41a5.png)
+### ShuffleReader网络请求流程
+- 使用基于netty的网络通信框架  
+- 位置信息记录在MapOutputTracker中
+- 主要会发送两种类型的请求：OpenBlocks请求、Chunk请求或Stream请求
+ ![image](https://user-images.githubusercontent.com/91240419/182068141-962e0655-69a4-4951-a514-7bb694364afe.png)
+ 使用netty作为网络框架提供网络服务，并接受reducetask的fetch请求  
+首先发起openBlocks请求获得streamId，然后再处理stream或者chunk请求
+### Reader实现-ShuffleBlockFetchIterator
+![image](https://user-images.githubusercontent.com/91240419/182068272-a7813610-5328-4ced-9137-ae067641239c.png)
+### Read实现-External Shuffle Service
+ESS作为一个存在于每个节点上的agent为所有Shuffle Reader提供服务，从而优化了Spark作业的资源利用率，MapTask在运行结束后可以正常退出。
+![image](https://user-images.githubusercontent.com/91240419/182068473-26725476-6c07-48e1-a826-6c313b386b34.png)
+为了解决Executor为了服务数据的fetch请求导致无法退出问题，我们在每个节点上部署一个External Shuffle Service，这样产生数据的Executor在不需要继续处理任务时，可以随意退出。
+### shuffle优化
+#### 零拷贝-Zero Copy
+![image](https://user-images.githubusercontent.com/91240419/182069064-c9a49ade-c129-4fc1-91b1-258b154c8773.png)
+
+
+
 
 
 
