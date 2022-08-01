@@ -304,3 +304,73 @@ AQE对于整体的Spark SQL的执行过程做了相应的调整和优化，它�
 + 火山模型问题：数据以行为单位进行处理，不利于CPU cache 发挥作用；每处理一行需要调用多次next() 函数，而next()为虚函数调用。会有大量类型转换和虚函数调用。虚函数调用会导致CPU分支预测失败，从而导致严重的性能回退  
 Spark WholestageCodegen：为了消除这些overhead，会为物理计划生成类型确定的java代码。并进行即时编译和执行。  
 Codegen打破了Stage内部算子间的界限，拼出来跟原来的逻辑保持一致的裸的代码（通常是一个大循环）然后把拼成的代码编译成可执行文件。
+
+## 大数据 Shuffle 原理与实践
+![image](https://user-images.githubusercontent.com/91240419/182065115-96d7532b-38f3-469e-b1bf-13ae721843ad.png)
+####为什么shuffle如此重要
+- 数据shuffle表示了不同分区数据交换的过程，不同的shuffle策略性能差异较大。
+- 目前在各个引擎中shuffle都是优化的重点，在spark框架中，shuffle是支撑spark进行大规模复杂数据处理的基石。  
+
+### shuffle算子
+####常见的触发shuffle的算子
+##### repartition
+- coalesce、repartition
+##### ByKey
+- groupByKey、reduceByKey、aggregateByKey、combineByKey、sortByKeysortBy
+##### Join
+- cogroup、join
+### Shuffle Dependency
+创建会产生shuffle的RDD时，RDD会创建Shuffle Dependency来描述Shuffle相关的信息
+##### 构造函数
+- A single key-value pair RDD, i.e. RDD[Product2[K, V]],
+- Partitioner (available as partitioner property),
+- Serializer,
+- Optional key ordering (of Scala’s scala.math.Ordering type),
+- Optional Aggregator,
+- mapSideCombine flag which is disabled (i.e. false) by default.
+### Partitioner
+用来将record映射到具体的partition的方法  
+经典实现：hashPartitioner  
+##### 接口
+- numberPartitions
+- getPartition
+### Aggregator
+在map侧合并部分record的函数
+##### 接口
+- createCombiner：只有一个value的时候初始化的方法
+- mergeValue：合并一个value到Aggregator中
+- mergeCombiners：合并两个Aggregator
+
+## shuffle过程
+![image](https://user-images.githubusercontent.com/91240419/182066400-436fb4b1-d6dc-4d50-8f1b-61f770cc1cb8.png)
+![image](https://user-images.githubusercontent.com/91240419/182066458-f35ccf24-8911-4c62-af8a-2143f0e03a60.png)
+#### HashShuffle
+- 优点：不需要排序
+- 缺点：打开，创建的文件过多
+![image](https://user-images.githubusercontent.com/91240419/182066595-91cf0a99-0d66-4911-8691-e8c4be89ce53.png)
+![image](https://user-images.githubusercontent.com/91240419/182066604-3db7cf1f-4503-4081-89f4-24e856a2c2c1.png)
+#### SortShuffle
+- 优点：打开的文件少、支持map-side combine
+- 缺点：需要排序
+#### TungstenSortShuffle
+- 优点：更快的排序效率，更高的内存利用效率
+- 缺点：不支持map-side combine
+### shuffle触发流程
+![image](https://user-images.githubusercontent.com/91240419/182067024-e9b34415-3970-4ef7-9fbb-fd753bec9870.png)
+#### Register Shuffle
+![image](https://user-images.githubusercontent.com/91240419/182067064-9f0d510c-ba1a-4ecf-b231-5a668117a012.png)
+- 由action算子触发DAG Scheduler进行shuffle register
+- Shuffle Register会根据不同的条件决定注册不同的ShuffleHandle
+#### shuffle writer
+![image](https://user-images.githubusercontent.com/91240419/182067195-18851419-a4d8-4d94-b320-c36914df0b07.png)
+![image](https://user-images.githubusercontent.com/91240419/182067267-7d9eace8-f58a-489d-bb22-63a25ece9e95.png)
+![image](https://user-images.githubusercontent.com/91240419/182067283-5f47595f-255a-4b10-bd73-35dba05c8784.png)
+![image](https://user-images.githubusercontent.com/91240419/182067297-1d7ccb2c-61e7-43f9-be4d-45f966eec014.png)
+![image](https://user-images.githubusercontent.com/91240419/182067301-32e07418-19dd-4ceb-8e29-5ad72f86badb.png)
+
+
+
+
+
+
+
