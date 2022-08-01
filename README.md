@@ -381,8 +381,77 @@ ESS作为一个存在于每个节点上的agent为所有Shuffle Reader提供服�
 ![image](https://user-images.githubusercontent.com/91240419/182068473-26725476-6c07-48e1-a826-6c313b386b34.png)
 为了解决Executor为了服务数据的fetch请求导致无法退出问题，我们在每个节点上部署一个External Shuffle Service，这样产生数据的Executor在不需要继续处理任务时，可以随意退出。
 ### shuffle优化
+#### 避免使用shuffle
+```
+//传统的join操作会导致shuffle操作。
+//因为两个RDD中，相同的key都需要通过网络拉取到一个节点上，由一个task进行join操作。
+val rdd3 = rdd1.join(rdd2)
+
+//Broadcast+map的join操作，不会导致shuffle操作。
+//使用Broadcast将一个数据量较小的RDD作为广播变量。
+val rdd2Data = rdd2.collect()
+val rdd2DataBroadcast = sc.broadcast(rdd2Data)
+
+//在rdd1.map算子中，可以从rdd2DataBroadcast中，获取rdd2的所有数据。
+//然后进行遍历，如果发现rdd2中某条数据的key与rdd1的当前数据的key是相同的，那么就判定可以进行join。
+//此时就可以根据自己需要的方式，将rdd1当前数据与rdd2中可以连接的数据，拼接在一起（String或Tuple）。
+val rdd3 = rdd1.map(rdd2DataBroadcast...)
+
+//注意，以上操作，建议仅仅在rdd2的数据量比较少（比如几百M，或者一两G）的情况下使用。
+//因为每个Executor的内存中，都会驻留一份rdd2的全量数据。
+```
+- 使用可以map-side预聚合的算子
+- Shuffle 参数优化
+```
+spark.default.parallelism && spark.sql.shuffle.partitions
+spark.hadoopRDD.ignoreEmptySplits
+spark.hadoop.mapreduce.input.fileinputformat.split.minsize
+spark.sql.file.maxPartitionBytes
+spark.sql.adaptive.enabled && spark.sql.adaptive.shuffle.targetPostShuffleInputSize
+spark.reducer.maxSizeInFlight
+spark.reducer.maxReqsInFlight spark.reducer.maxBlocksInFlightPerAddress
+```
+
 #### 零拷贝-Zero Copy
 ![image](https://user-images.githubusercontent.com/91240419/182069064-c9a49ade-c129-4fc1-91b1-258b154c8773.png)
+#### Netty 零拷贝
+- 可堆外内存，避免 JVM 堆内存到堆外内存的数据拷贝。
+- CompositeByteBuf 、 Unpooled.wrappedBuffer、 ByteBuf.slice ，可以合并、包装、切分数组，避免发生内存拷贝
+- Netty 使用 FileRegion 实现文件传输，FileRegion 底层封装了 FileChannel#transferTo() 方法，可以将文件缓冲区的数据直接传输到目标 Channel，避免内核缓冲区和用户态缓冲区之间的数据拷贝
+
+### Shuffle 倾斜优化
+#### 解决倾斜方法举例
+- 增大并发度
+- AQE
+ ![image](https://user-images.githubusercontent.com/91240419/182080256-3f19cd00-6121-42a0-91da-4388d9ca3294.png)
+ ![image](https://user-images.githubusercontent.com/91240419/182080383-e3c9c938-ab99-42db-a5ba-e4cd0b67d342.png)
+
+### shuffle过程问题
+- 数据存储在本地磁盘，没有备份
+- IO 并发：大量 RPC 请求（M*R）
+- IO 吞吐：随机读、写放大（3X）
+- GC 频繁，影响 NodeManager
+![image](https://user-images.githubusercontent.com/91240419/182080481-54618a67-0a01-4312-b0c7-ec0bf08ca004.png
+
+####  Magnet主要流程
+![image](https://user-images.githubusercontent.com/91240419/182080600-3ca255df-7368-4358-9d64-279e295f271b.png)
+![image](https://user-images.githubusercontent.com/91240419/182080696-922dbffd-8afc-4cf3-9da7-b0c489815f99.png)
+![image](https://user-images.githubusercontent.com/91240419/182080621-86c62267-eb7a-4dbb-879f-8bd27e0be57a.png)
+![image](https://user-images.githubusercontent.com/91240419/182080719-9c7809d1-d3ee-4ded-8da2-62418a572789.png)
+主要为边写边push的模式，在原有的shuffle基础上尝试push聚合数据，但并不强制完成，读取时优先读取push聚合的结果，对于没有来得及完成聚合或者聚合失败的情况，则fallback到原模式。  
+![image](https://user-images.githubusercontent.com/91240419/182080822-fbb257ca-a3ea-422c-8579-7cab16a721d2.png)
+####  Cloud Shuffle Service架构
+![image](https://user-images.githubusercontent.com/91240419/182080944-d9b4cd1e-5b67-4c12-b4f0-d0d9aad35d98.png)
+- Zookeeper WorkerList [服务发现]
+- CSS Worker [Partitions / Disk | Hdfs]
+- Spark Driver [集成启动 CSS Master]
+- CSS Master [Shuffle 规划 / 统计]
+- CSS ShuffleClient [Write / Read]
+- Spark Executor [Mapper + Reducer]
+##### Cloud Shuffle Service 支持AQE
+![image](https://user-images.githubusercontent.com/91240419/182081075-de2491be-9539-4f63-9d0f-50792c025edf.png)
+- 在聚合文件时主动将文件切分为若干块，当触发AQE时，按照已经切分好的文件块进行拆分。
+
 
 
 
