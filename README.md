@@ -363,10 +363,10 @@ Codegen打破了Stage内部算子间的界限，拼出来跟原来的逻辑保�
 - Shuffle Register会根据不同的条件决定注册不同的ShuffleHandle
 #### shuffle writer
 ![image](https://user-images.githubusercontent.com/91240419/182067195-18851419-a4d8-4d94-b320-c36914df0b07.png)
-![image](https://user-images.githubusercontent.com/91240419/182067267-7d9eace8-f58a-489d-bb22-63a25ece9e95.png)
-![image](https://user-images.githubusercontent.com/91240419/182067283-5f47595f-255a-4b10-bd73-35dba05c8784.png)
-![image](https://user-images.githubusercontent.com/91240419/182067297-1d7ccb2c-61e7-43f9-be4d-45f966eec014.png)
-![image](https://user-images.githubusercontent.com/91240419/182067301-32e07418-19dd-4ceb-8e29-5ad72f86badb.png)
+![image](https://user-images.githubusercontent.com/91240419/182067413-71c205de-11e1-4539-8cc2-116f0ede2f6f.png)
+![image](https://user-images.githubusercontent.com/91240419/182067485-bbe753d5-ee7a-4fc6-bba5-6e307821fd31.png)
+![image](https://user-images.githubusercontent.com/91240419/182067525-8a6ae044-80a9-43fa-bf87-71eda590edf5.png)
+![image](https://user-images.githubusercontent.com/91240419/182067547-6c029304-5646-41c3-91d3-2815a1fa41a5.png)
 
 
 
