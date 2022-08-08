@@ -452,6 +452,8 @@ spark.reducer.maxReqsInFlight spark.reducer.maxBlocksInFlightPerAddress
 ![image](https://user-images.githubusercontent.com/91240419/182081075-de2491be-9539-4f63-9d0f-50792c025edf.png)
 - 在聚合文件时主动将文件切分为若干块，当触发AQE时，按照已经切分好的文件块进行拆分。
 
+## 深入浅出 HBase 实战
+https://juejin.cn/post/7126813033602482190/#heading-0
 
 
 
