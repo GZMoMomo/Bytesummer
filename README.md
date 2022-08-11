@@ -613,9 +613,140 @@ spark.reducer.maxReqsInFlight spark.reducer.maxBlocksInFlightPerAddress
 
 ## 深入浅出 HBase 实战
 https://juejin.cn/post/7126813033602482190/#heading-0
+## Parquet 和 ORC：高性能列式存储
+### 一个大数据查询作业，可以简单的概括为以下几个步骤：
+- 从存储层读取文件
+- 计算层解析文件内容，运行各种计算算子
+- 计算层输出结果，或者把结果写入存储层
+### 行存 vs 列存
+#### 数据格式层
+- 数据格式层：定义了存储层文件内部的组织格式，计算引擎通过格式层的支持来读写文件
+- 严格意义上，并不是一个独立的层级，而是运行在计算层的一个Library
+![image](https://user-images.githubusercontent.com/91240419/184046171-3dadad0c-7189-4f4b-9dd2-8598503f4510.png)
+#### OLTP vs OLAP
+OLTP 和 OLAP 作为数据查询和分析领域两个典型的系统类型，具有不同的业务特征，适配不同的业务场景
+![image](https://user-images.githubusercontent.com/91240419/184046367-a97745cb-f4c8-4dc7-8b83-054a1e0ef0dd.png)
 
+#### 行式存储格式 (行存) 与 OLTP
+- 每一行 (Row) 的数据在文件的数据空间里连续存放的
+- 读取整行的效率比较高，一次顺序 IO 即可
+- 在典型的 OLTP 型的分析和存储系统中应用广泛，例如：MySQL、Oracle、RocksDB 等
+![image](https://user-images.githubusercontent.com/91240419/184046422-2e6d7b70-9e8b-4072-bf7d-b09d6ad92364.png)
 
+#### 列式存储格式 (列存) 与 OLAP
+- 每一列 (Column) 的数据在文件的数据空间里连续存放的
+- 同列的数据类型一致，压缩编码的效率更好
+- 在典型的 OLAP 型分析和存储系统中广泛应用，例如：
+  - 大数据分析系统：Hive、Spark，数据湖分析
+  - 数据仓库：ClickHouse，Greenplum，阿里云 MaxCompute
+![image](https://user-images.githubusercontent.com/91240419/184046531-db7c6c20-2922-4630-b2c1-998f42569124.png)
 
+### Parquet （列存）
+#### Parquet 中的数据编码
+- 在 Parquet 的 ColumnChunk 里，同一个 ColumnChunk 内部的数据都是同一个类型的，可以通过编码的方式更高效的存储
+下面举例介绍常见的 Encoding：
+- Run Length Encoding (RLE)：适用于列基数不大，重复值较多的场景，例如：Boolean、枚举、固定的选项等
+- Bit-Pack Encoding: 对于 32位或者64位的整型数而言，并不需要完整的 4B 或者 8B 去存储，高位的零在存储时可以省略掉。适用于最大值非常明确的情况下。
+  -一般配合 RLE 一起使用
+- Dictionary Encoding：适用于列基数 (Column Cardinality) 不大的字符串类型数据存储；
+  -构造字典表，用字典中的 Index 替换真实数据
+  -替换后的数据可以使用 RLE + Bit-Pack 编码存储
+
+#### Parquet 中的压缩方式
+- Page 完成 Encoding 以后，进行压缩
+- 支持多种压缩算法
+  -snappy: 压缩速度快，压缩比不高，适用于热数据
+  -gzip：压缩速度慢，压缩比高，适用于冷数据
+  -zstd：新引入的压缩算法，压缩比和 gzip 差不多，而且压缩速度略低于 Snappy
+  
+#### 索引和排序 Index and Ordering
+- 和传统的数据库相比，索引支持非常简陋
+- 主要依赖 Min-Max Index 和 排序 来加速查找
+- Page：记录 Column 的 min_value 和 max_value
+- Footer 里的 Column Metadata 包含 ColumnChunk 的全部 Page 的 Min-Max Value
+- 一般建议和排序配合使用效果最佳
+- 一个 Parquet 文件只能定义一组 Sort Column，类似聚集索引概念
+![image](https://user-images.githubusercontent.com/91240419/184046978-9d6f17d0-c84b-48f3-a67c-50779358693f.png)
+典型的查找过程：
+- 读取 Footer
+- 根据 Column 过滤条件，查找 Min-Max Index 定位到 Page
+- 根据 Page 的 Offset Index 定位具体的位置
+- 读取 Page，获取行号
+- 从其他 Column 读取剩下的数据
+
+#### Bloom Filter 索引
+- 适用场景
+  -对于列基数比较大的场景，或者非排序列的过滤，Min-Max Index 很难发挥作用
+- 引入 Bloom Filter 加速过滤匹配判定
+- 每个 ColumnChunk 的头部保存 Bloom Filter 数据
+- Footer 记录 Bloom Filter 的 page offset
+![image](https://user-images.githubusercontent.com/91240419/184047091-8cbbca47-9e08-4aaa-9e8d-f07d99e17fc0.png)
+
+#### 过滤下推 Predicate PushDown
+- parquet-mr 库实现，实现高效的过滤机制
+- 引擎侧传入 Filter Expression
+- parquet-mr 转换成具体 Column 的条件匹配
+- 查询 Footer 里的 Column Index，定位到具体的行号
+- 返回有效的数据给引擎侧
+优点：
+- 在格式层过滤掉大多数不相关的数据
+- 减少真实的读取数据量
+![image](https://user-images.githubusercontent.com/91240419/184048208-d57fec9c-a446-45aa-9f63-25066676e984.png)
+
+#### Parquet & Spark
+作为最通用的 Spark 数据格式
+主要实现在：ParquetFileFormat
+- 支持向量化读：spark.sql.parquet.enableVectorizedReader
+- 向量化读是主流大数据分析引擎的标准实践，可以极大的提升查询性能
+- Spark 以 Batch 的方式从 Parquet 读取数据，下推的逻辑也会适配 Batch 的方式
+
+### ORC （大数据分析领域使用最广的列存格式之一）
+#### ACID 特性
+- 支持 Hive Transactions 实现，目前只有 Hive 本身集成
+- 类似 Delta Lake / Hudi / Iceberg
+- 基于 Base + Delta + Compaction 的设计
+
+#### 索引增强
+- 支持 Clusterd Index，更快的主键查找
+- 支持 Bitmap Index，更快的过滤
+
+#### 其他优化
+- 小列聚合，减少小 IO
+  - 重排 ColumnChunk
+ ![image](https://user-images.githubusercontent.com/91240419/184048439-4fcdffd8-dba3-4db8-98b9-76e37886b16d.png)
+- 异步预取优化
+  -在计算引擎处理已经读到的数据的时候，异步去预取下一批次数据
+ ![image](https://user-images.githubusercontent.com/91240419/184048463-1ebd6b7c-69b4-4004-8e96-222db20719bd.png)
+
+#### Parquet vs ORC 对比
+- 从原理层面，最大的差别就是对于 NestedType 和复杂类型处理上
+- Parquet 的算法上要复杂很多，带来的 CPU 的开销比 ORC 要略大
+- ORC 的算法上相对加单，但是要读取更多的数据
+- 因此，这个差异的对业务效果的影响，很难做一个定性的判定，更多的时候还是要取决于实际的业务场景
+
+### 列存演进
+#### 数仓中的列存
+- 典型的数仓，例如 ClickHouse 的 MergeTree 引擎也是基于列存构建的
+  - 默认情况下列按照 Column 拆分成单独的文件，也支持单个文件形式
+![image](https://user-images.githubusercontent.com/91240419/184048545-9900e857-614d-4eef-8539-36d840364b70.png)
+- 支持更加丰富的索引，例如 Bitmap Index、Reverted Index、Data Skipping Index、Secondary Index 等
+- 湖仓一体的大趋势下，数仓和大数据数据湖技术和场景下趋于融合，大数据场景下的格式层会借鉴更多的数仓中的技术
+
+#### 存储侧下推
+- 更多的下推工作下沉到存储服务侧
+- 越接近数据，下推过滤的效率越高
+  -例如 AWS S3 Select 功能
+![image](https://user-images.githubusercontent.com/91240419/184048601-6a92598d-5de8-40f1-9c76-3ca132a7157e.png)
+挑战：
+- 存储侧感知 Schema
+- 计算生态的兼容和集成
+
+#### Column Family 支持
+- 背景：Hudi 数据湖场景下，支持部分列的快速更新
+- 在 Parquet 格式里引入 Column Family 概念，把需要更新的列拆成独立的 Column Family
+- 深度改造 Hudi 的 Update 和 Query 逻辑，根据 Column Family 选择覆盖对应的 Column Family
+- Update 操作实际效果有 10+ 倍的提升
+![image](https://user-images.githubusercontent.com/91240419/184048659-cfb681a2-7dbb-423b-92bd-4b9ac9ee2b6e.png)
 
 
 
