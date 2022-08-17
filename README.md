@@ -868,4 +868,166 @@ KV 分离受启发于论文 WiscKey: Separating Keys from Values in SSD-consciou
 - 平均 CPU 收益主要来自于，开启 KV 分离，减少写放大
 - 容量收益主要来自于 schedule TTL GC，该功能可以根据 SST 的过期时间主动发起Compaction，而不需要被动的跟随 LSM-tree 形态调整回收空间
 
+## 10.走进 YARN 资源管理和调度
+###  离线调度生态介绍
+![image](https://user-images.githubusercontent.com/91240419/185052294-712197e1-cb8a-4159-ab53-37c7f32c67ee.png)
+- 用户逻辑层：数据分析任务、模型训练任务等
+- 作业托管层：管理各种类型上层任务
+- 分布式计算引擎层：各种针对不同使用场景的计算引擎，例如：MR、Spark、Flink 等
+- 集群资源管理层：YARN
+- 裸金属层：众多物理节点组成
 
+### YARN 整体架构
+#### 系统架构
+![image](https://user-images.githubusercontent.com/91240419/185052412-9471e65b-ddbb-4a38-b94b-37bc341ee27e.png)
+Resource Manager
+- 整个集群的大脑，负责为应用调度资源，管理应用生命周期；
+- 对用户提供接口，包括命令行接口，API， WebUI 接口；
+- 可以同时存在多个RM、，同一时间只有一个在工作，RM 之间通过 ZK 选主；
+Node Manager
+- 为整个集群提供资源, 接受 Container 运行；
+- 管理Contianer的运行时生命周期, 包括Localization, 资源隔离, 日志聚合等；
+- YARN上运行的作业在运行时会访问外部的数据服务，常见的如 HDFS， Kafka 等；在运行结束后由 YARN 负责将日志上传到 HDFS；
+
+#### 任务运行核心流程
+![image](https://user-images.githubusercontent.com/91240419/185052551-5d594a0c-d19a-4d55-987f-b16b2d44d690.png)
+1. Client 获取 ApplicationID，调用 ApplicationClientProtocol #getNewApplication。
+2. RM 返回 GetNewApplicationResponse，其中主要包括：ApplicationID、最大可申请资源以及相关配置。
+3. Client 将任务运行所需的资源上传至HDFS的指定目录下，并初始化AM配置，主要构造 ApplicationSubmissionContext （应用ID、应用名称、所属队列、应用优先级、应用类型、应用尝试次数、运行AM所需要的资源等）和 ContainerLaunchContext（容器运行所需的本地资源、容器持有的安全令牌、应用自有的数据、使用的环境变量、启动容器的命令行等）。
+4. Client 将 AM 提交至 RM，调用 ApplicationClientProtocol #submitApplication。
+5. RM 根据一定的分配策略为 AM 分配container，并与 NM 通信。
+6. NM 启动 AM。
+7. AM 从 HDFS 下载本任务运行所需要的资源并进行初始化工作。
+8. AM 向 RM 注册和申请资源。ApplicationMasterProtocol # registerApplicationMaster，注册信息包括：AM所在节点的主机名、AM的对外RPC服务端口和跟踪应用状态的Web接口；ApplicationMasterProtocol # allocate，相关信息封装在 AllocateRequest中包括：响应ID、申请的资源列表、AM主动释放的容器列表、资源黑名单、应用运行进度。
+9. RM 接受 AM 请求后，按照调度算法分配全部或部分申请的资源给 AM，返回一个 AllocateResponse 对象，其中包括：响应ID、分配的container列表、已完成的container状态列表、状态被更新过的节点列表、资源抢占信息（强制收回部分和可自主调配部分）等。
+10. AM 获取到资源后与对应的 NM 通信以启动 container， ContainerManagementProtocol # startContainers
+11. NM 启动container。
+12. Container 从 HDFS 下载任务运行必要的资源。
+13. Container 在运行过程中与AM通信及时汇报运行情况。
+14. 任务运行完成后 AM 向 RM 注销，ApplicationMasterProtocol # finishApplicationMaster()。
+
+### 核心模块
+#### Resource Manager
+整体架构
+![image](https://user-images.githubusercontent.com/91240419/185053053-8eead521-e775-459d-9768-b4a3724bd6ff.png)
+主要职责
+- 总的来说，RM 负责集群所有资源的统一管理和分配，接收各节点汇报信息并按照一定策略分配给各个任务；
+- 与客户端交互，处理来自客户端的请求
+- 启动和管理 AM，运行失败时自动重试
+- 管理所有 NM，接收 NM 的汇报信息并下达管理指令
+- 资源管理与调度
+  - 将资源按照一定方式组织起来，例如：资源池
+  - 将任务按照一定方式组织起来，例如：队列
+  - 接收来自各个 AM 的资源请求
+  - 按照一定分配策略将资源分配给 AM
+   ![image](https://user-images.githubusercontent.com/91240419/185053207-7faf1a31-8395-48da-bf12-fa25a6646a4f.png)
+状态机管理
+- RMApp 状态机
+- RMAppAttempt 状态机
+- RMContainer 状态机
+- RMNode 状态机
+### 调度分析
+调度流程： YARN 调度流程由心跳触发：
+- AM 定期与 RM 保持心跳，并将资源请求记录在 RM 中；
+- 触发时机: 由节点心跳触发针对此节点的调度；
+- 找 Label: 根据节点 Label 找到对应 Lable 下的所有队列；
+- 找队列: 将队列进行 DRF 排序, 找到当前最“饥饿”的队列；
+- 找应用: 将此队列内所有应用按照优先级进行排序(优先级由用户提交时指定), 找到优先级最高的应用, 优先级相同时按DRF 算法排序；
+- 找资源请求: 将此应用内的所有资源请求按照优先级排序(优先级由计算引擎指定), 找到优先级最高的资源请求进行资源分配；
+![image](https://user-images.githubusercontent.com/91240419/185054948-3e1c7a7f-eef8-48e4-be10-b1234fd6dbdc.png)
+
+典型调度器对比
+![image](https://user-images.githubusercontent.com/91240419/185054996-12aff12b-7645-4ed2-b88c-6e1a23565d9c.png)
+
+### Node Manager
+整体架构
+![image](https://user-images.githubusercontent.com/91240419/185055037-aa3497ec-4661-42e4-be85-8b9007778492.png)
+主要职责
+总的来说，NM 是节点代理，从 AM 接受命令（启停 Container）并执行，通过心跳方式向 RM 汇报节点状态并领取命令（清理 Container）。
+- 与 RM 交互
+  - 心跳汇报节点健康状况和 Container 运行状态；
+  - 领取 RM 下达的命令；
+- 与 AM 交互
+  - 启动容器
+  - 停止容器
+  - 获取容器状态
+![image](https://user-images.githubusercontent.com/91240419/185055142-2542822f-31a6-431e-992a-a49b6e16a4c5.png)
+状态机管理
+- Application
+- Container
+- LocalizedResource
+### 节点健康检查机制
+节点健康检测机制是 NM 自带的健康状况诊断机制。通过该机制 NM 可时刻掌握自己健康状况并及时汇报给 RM，RM 根据 NM 健康情况决定是否为其分配新任务。
+- 自定义 Shell
+  - NodeHealthScriptRunner 服务周期性执行节点健康状况检测脚本；
+  - 若输出以 “ERROR”开头，节点处于 unhealthy 状态并随心跳上报给 RM，RM 拉黑节点并停止分配新任务；
+  - 脚本一直执行，一旦节点变为 healthy 状态，RM 会继续为该节点分配新任务；
+- 检测磁盘损坏数目
+  - LocalDirsHandlerService 服务周期性检测 NM 本地磁盘好坏，一旦发现正常磁盘比例低于一定阈值则节点处于 unhealthy 状态；
+  - NM 判断磁盘好坏的标准：如果一个目录具有读、写和执行权限，则目录正常；
+### 重要机制
+####公平性保障
+##### Fair Share 调度策略
+![image](https://user-images.githubusercontent.com/91240419/185055347-0803ab0c-6b6a-4ed1-a79e-731aaece162c.png)
+两种类型 Fair Share
+- Steady Fair Share: TotalResource * S.weight
+- Instantaneous Fair Share:
+  - 定义
+    - 所有队列 Fair Share 之和 <= TotalResource;
+    - S.minShare <= Fair Share <= S.maxShare；
+  - 目标
+    - 找到一个 R 使其满足：
+    - R * （All S.wieght）<= TotalResource;
+    - S.minShare <= R * S.weight <= S.maxShare;
+  - 结果
+    - 若 S.minShare > R * S.weight， Fair Share = S.minShare
+    - 若 S.maxShare < R * S.weight，Fair Share = S.maxShare
+    - 其他 Fair Share = R * S.weight
+##### DRF 调度策略
+为什么需要 DRF 调度策略？
+- 在保证公平性的前提下进行资源降维，以达到更好的分配效果；
+什么是 DRF 调度策略？
+- DRF 是最大最小公平算法在多维资源上的具体实现；
+- 旨在使不同用户的“主分享量”最大化的保持公平；
+最大最小公平算法：最大化最小资源需求的满足度
+- 资源按照需求递增的顺序进行分配；
+- 用户获取的资源不超过自身需求；
+- 对未满足的用户，等价分享剩余资源；
+例如下面场景：A B C D 四个用户的资源需求分别是 2、2.6、4、5份，现在总共有 10 份资源，首先将所有资源均分，每个用户得到 2.5 份资源。对于 A 用户多分配 0.5 份，继续将这 0.5 份资源平均分配给 B C D，B 用户得到 2.666 份资源。会继续将 B 多分配的 0.066 份资源平均分配给 C 和 D。
+![image](https://user-images.githubusercontent.com/91240419/185055906-0c89c1b2-4f18-43fd-a7d5-e67666f94e21.png)
+
+### 高性能保障
+#### 状态机管理
+- 状态机由一组状态（初始状态、中间状态和最终状态）组成，状态机从初始状态开始运行，接收一组特定事件，经过一系列中间状态后，到达最终状态并退出；
+- 每种状态转换由一个四元组表示：转换前状态、转换后状态、事件和回调函数；
+- YARN 定义了三种状态转换方式如下所示：
+![image](https://user-images.githubusercontent.com/91240419/185056063-2d9d7788-9b82-4371-b711-554cd7c50eec.png)  
+![image](https://user-images.githubusercontent.com/91240419/185056084-4e536ae5-778d-406c-832a-b724fbd4bcff.png)  
+![image](https://user-images.githubusercontent.com/91240419/185056105-a40f34cf-e320-439c-8d34-045276e13d03.png)
+### 事件处理模型
+YARN 采用了基于事件驱动的并发模型，具有很强的并发性可提高系统性能。
+![image](https://user-images.githubusercontent.com/91240419/185056148-3690a0c8-13b4-4cdd-be00-897a111ecad0.png)
+- RM 中所有处理请求都会作为事件进入系统；
+- AsyncDispatcher 负责传递事件给相应事件调度器--EventHandler；
+- 事件调度器可能将该事件转发给另外一个事件调度器或带有有限状态机的事件处理器；
+- 处理结果也以事件形式输出，新事件会再次被中央异步调度器转发给下一个事件调度器，直至处理完成。
+
+#### 高可用保障
+##### RM 高可用
+- 热备方案：集群中存在一个对外服务的 Active Master 和若干 Standby Master，一旦 Active Master 故障，立即采取一定策略选取某个 Standby Master 转换为 Active Master 正常对外提供服务；
+- 基于共享存储的 HA 解决方案：Active Master 不断将信息写入共享存储系统（ZK）,故障切换时 Standby Master 从共享存储恢复数据，待信息完全同步后切换至 Active Master;
+
+两种切换模式：
+- 手动模式：使用 “yarn rmadmin”命令将现在的 Active Master 切换为 Standby 并选择一个 Standby 切换为 Active Master；
+- 自动模式：使用 ZK 的 ActiveStandbyElector 进行选主操作，ZK 中有一个 /yarn-leader-election/yarn1 的锁节点，所有 RM 在启动时去竞争写一个 Lock 子节点：/yarn-leader-election/yarn1/ActiveBreadCrumb，该节点是临时节点。ZK 保证最终只有一个 RM 能够创建成功，创建成功的为 Active Master;
+Client 、 AM、NM 自动重试：切主时各组件基于配置文件中的所有 RM 采用 round-robin 轮询方式不断尝试连接 RM 直到命中 Active Master；
+##### NM 高可用
+- 相关信息存储至 leveldb 数据库；
+- NM 重启时加载 yarn-nm-recovery 下的 leveldb 数据库；
+
+#### Gang 调度器
+#### 反调度器
+https://juejin.cn/post/7130131931722678308#heading-61
+
+## 11.深入理解 K8S 资源管理和调度
+https://juejin.cn/post/7130131931722678308#heading-80
