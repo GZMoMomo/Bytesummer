@@ -868,3 +868,4 @@ KV 分离受启发于论文 WiscKey: Separating Keys from Values in SSD-consciou
 - 平均 CPU 收益主要来自于，开启 KV 分离，减少写放大
 - 容量收益主要来自于 schedule TTL GC，该功能可以根据 SST 的过期时间主动发起Compaction，而不需要被动的跟随 LSM-tree 形态调整回收空间
 
+
