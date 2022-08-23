@@ -748,7 +748,7 @@ OLTP 和 OLAP 作为数据查询和分析领域两个典型的系统类型，具
 - Update 操作实际效果有 10+ 倍的提升
 ![image](https://user-images.githubusercontent.com/91240419/184048659-cfb681a2-7dbb-423b-92bd-4b9ac9ee2b6e.png)
 
-## LSMT 存储引擎浅析
+## 10.LSMT 存储引擎浅析
 较早的数据库产品，如 MySQL，PostgresQL 默认均采用 B+Tree（B-Tree 变种）索引。较新的数据库产品，如 TiDB，CockroachDB，默认均采用 LSMT 存储引擎（RocksDB / Pebble）。  
 LSMT 模型变得越来越流行。LSMT 模型广泛应用于目前的数据库系统，例如 Google BigTable，HBase，Canssandra，RocksDB 等，可以说是数据库存储子系统的基石之一。  
 
@@ -868,7 +868,7 @@ KV 分离受启发于论文 WiscKey: Separating Keys from Values in SSD-consciou
 - 平均 CPU 收益主要来自于，开启 KV 分离，减少写放大
 - 容量收益主要来自于 schedule TTL GC，该功能可以根据 SST 的过期时间主动发起Compaction，而不需要被动的跟随 LSM-tree 形态调整回收空间
 
-## 10.走进 YARN 资源管理和调度
+## 11.走进 YARN 资源管理和调度
 ###  离线调度生态介绍
 ![image](https://user-images.githubusercontent.com/91240419/185052294-712197e1-cb8a-4159-ab53-37c7f32c67ee.png)
 - 用户逻辑层：数据分析任务、模型训练任务等
@@ -1029,5 +1029,5 @@ Client 、 AM、NM 自动重试：切主时各组件基于配置文件中的所�
 #### 反调度器
 https://juejin.cn/post/7130131931722678308#heading-61
 
-## 11.深入理解 K8S 资源管理和调度
+## 12.深入理解 K8S 资源管理和调度
 https://juejin.cn/post/7130131931722678308#heading-80
